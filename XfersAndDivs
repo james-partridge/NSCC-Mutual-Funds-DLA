@@ -1,0 +1,75 @@
+pragma solidity ^0.8.0;
+
+contract MutualFund {
+    string public name;
+    address public owner;
+    uint256 public totalShares;
+    uint256 public netAssetValue;
+    uint256 public dividendPerShare;
+    mapping(address => uint256) public balances;
+    mapping(address => mapping(address => uint256)) public allowances;
+
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+    event DividendPayment(uint256 amount);
+
+    constructor(string memory _name) {
+        name = _name;
+        owner = msg.sender;
+        totalShares = 0;
+        netAssetValue = 1 ether; // 1 ether = 1 share
+        dividendPerShare = 0;
+    }
+
+    function buyShares(uint256 _amount) public payable {
+        require(msg.value == _amount * netAssetValue, "Insufficient ether sent");
+        balances[msg.sender] += _amount;
+        totalShares += _amount;
+    }
+
+    function sellShares(uint256 _amount) public {
+        require(balances[msg.sender] >= _amount, "Insufficient shares");
+        balances[msg.sender] -= _amount;
+        totalShares -= _amount;
+        payable(msg.sender).transfer(_amount * netAssetValue);
+    }
+
+    function transfer(address _to, uint256 _amount) public returns (bool success) {
+        require(balances[msg.sender] >= _amount, "Insufficient balance");
+        balances[msg.sender] -= _amount;
+        balances[_to] += _amount;
+        emit Transfer(msg.sender, _to, _amount);
+        return true;
+    }
+
+    function approve(address _spender, uint256 _amount) public returns (bool success) {
+        allowances[msg.sender][_spender] = _amount;
+        emit Approval(msg.sender, _spender, _amount);
+        return true;
+    }
+
+    function transferFrom(address _from, address _to, uint256 _amount) public returns (bool success) {
+        require(balances[_from] >= _amount, "Insufficient balance");
+        require(allowances[_from][msg.sender] >= _amount, "Insufficient allowance");
+        balances[_from] -= _amount;
+        balances[_to] += _amount;
+        allowances[_from][msg.sender] -= _amount;
+        emit Transfer(_from, _to, _amount);
+        return true;
+    }
+
+    function issueDividend() public payable {
+        require(msg.sender == owner, "Only owner can issue dividend");
+        require(msg.value > 0, "Invalid dividend amount");
+        dividendPerShare += msg.value / totalShares;
+        emit DividendPayment(msg.value);
+    }
+
+    function withdrawDividend() public {
+        uint256 dividendOwed = balances[msg.sender] * dividendPerShare;
+        require(dividendOwed > 0, "No dividend owed");
+        balances[msg.sender] += dividendOwed;
+        dividendPerShare -= dividendOwed / totalShares;
+        emit Transfer(address(0), msg.sender, dividendOwed);
+    }
+}
