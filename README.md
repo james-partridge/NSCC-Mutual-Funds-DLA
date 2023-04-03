@@ -19,4 +19,3 @@ For example,
   
 In all cases, any tranasction with mutual fund requires multiple updates submitted to a centralized record-keeper. This submit-and-verify arrangement may allow for decentralized registration and processing of mutual funds with brokers and funds acting on a private permissioned chain. Distributed Ledger Mutual Fund Accounting can operate according to existing standards (NAV struck at 4pm EST), or allow for near real-time settlements with private or public payment rails, including USDC and FedNow. 
   
-This  is a work in progress.
