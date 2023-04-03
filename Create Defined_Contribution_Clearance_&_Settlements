@@ -1,0 +1,67 @@
+pragma solidity ^0.8.0;
+
+contract RetirementPlan {
+    
+    struct Participant {
+        address account;
+        uint256 balance;
+        mapping(address => uint256) holdings;
+    }
+    
+    struct Fund {
+        address manager;
+        string name;
+        uint256 sharePrice;
+        uint256 totalShares;
+        mapping(address => uint256) holdings;
+    }
+    
+    mapping(address => Participant) public participants;
+    mapping(address => Fund) public funds;
+    
+    event FundCreated(address fundAddress, string name, uint256 sharePrice, uint256 totalShares);
+    event SharesPurchased(address participant, address fundAddress, uint256 amount);
+    event SharesSold(address participant, address fundAddress, uint256 amount);
+    event DividendPaid(address fundAddress, uint256 amount);
+    event RebalanceComplete(address fundAddress, uint256 newSharePrice);
+    
+    function createFund(string memory _name, uint256 _sharePrice, uint256 _totalShares) public {
+        require(funds[msg.sender].manager == address(0), "A fund already exists for this account");
+        Fund memory newFund = Fund(msg.sender, _name, _sharePrice, _totalShares);
+        funds[msg.sender] = newFund;
+        emit FundCreated(msg.sender, _name, _sharePrice, _totalShares);
+    }
+    
+    function purchaseShares(address _fundAddress, uint256 _amount) public payable {
+        Fund storage fund = funds[_fundAddress];
+        require(msg.value == (_amount * fund.sharePrice), "Incorrect payment amount");
+        Participant storage participant = participants[msg.sender];
+        require(participant.account != address(0), "Participant account not found");
+        require(_amount <= (msg.value / fund.sharePrice), "Insufficient shares available for purchase");
+        fund.holdings[msg.sender] += _amount;
+        participant.holdings[_fundAddress] += _amount;
+        participant.balance += msg.value;
+        fund.totalShares += _amount;
+        emit SharesPurchased(msg.sender, _fundAddress, _amount);
+    }
+    
+    function sellShares(address _fundAddress, uint256 _amount) public {
+        Fund storage fund = funds[_fundAddress];
+        Participant storage participant = participants[msg.sender];
+        require(participant.holdings[_fundAddress] >= _amount, "Insufficient shares held by participant");
+        uint256 saleValue = _amount * fund.sharePrice;
+        require(saleValue > 0, "No shares available for sale");
+        fund.holdings[msg.sender] -= _amount;
+        participant.holdings[_fundAddress] -= _amount;
+        participant.balance += saleValue;
+        fund.totalShares -= _amount;
+        payable(msg.sender).transfer(saleValue);
+        emit SharesSold(msg.sender, _fundAddress, _amount);
+    }
+    
+    function reinvestDividends(address _fundAddress, uint256 _amount) public {
+        Fund storage fund = funds[_fundAddress];
+        require(fund.manager == msg.sender, "Only fund manager can reinvest dividends");
+        require(_amount <= address(this).balance, "Insufficient funds available for dividend payment");
+        fund.totalShares += (_amount / fund.sharePrice);
+        fund.sharePrice += (_amount /
