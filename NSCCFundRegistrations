@@ -1,0 +1,102 @@
+pragma solidity ^0.8.0;
+
+contract MutualFundRegistration {
+    string public name;
+    address public owner;
+    uint256 public totalRegistrations;
+    mapping(uint256 => Registration) public registrations;
+    mapping(address => bool) public authorizedBrokers;
+
+    struct Registration {
+        uint256 id;
+        string fundName;
+        string fundType;
+        string investmentObjective;
+        string investmentStrategy;
+        string investmentPolicies;
+        string riskConsiderations;
+        string feesAndExpenses;
+        string financialStatements;
+        address registeredBroker;
+        string registrationType;
+        uint256 effectiveDate;
+        uint256 expirationDate;
+    }
+
+    event RegistrationAdded(uint256 id);
+    event RegistrationUpdated(uint256 id);
+
+    constructor(string memory _name) {
+        name = _name;
+        owner = msg.sender;
+        totalRegistrations = 0;
+    }
+
+    function addRegistration(
+        string memory _fundName,
+        string memory _fundType,
+        string memory _investmentObjective,
+        string memory _investmentStrategy,
+        string memory _investmentPolicies,
+        string memory _riskConsiderations,
+        string memory _feesAndExpenses,
+        string memory _financialStatements,
+        address _registeredBroker,
+        string memory _registrationType,
+        uint256 _effectiveDate,
+        uint256 _expirationDate
+    ) public returns (uint256) {
+        require(authorizedBrokers[_registeredBroker], "Broker not authorized");
+        totalRegistrations += 1;
+        Registration storage registration = registrations[totalRegistrations];
+        registration.id = totalRegistrations;
+        registration.fundName = _fundName;
+        registration.fundType = _fundType;
+        registration.investmentObjective = _investmentObjective;
+        registration.investmentStrategy = _investmentStrategy;
+        registration.investmentPolicies = _investmentPolicies;
+        registration.riskConsiderations = _riskConsiderations;
+        registration.feesAndExpenses = _feesAndExpenses;
+        registration.financialStatements = _financialStatements;
+        registration.registeredBroker = _registeredBroker;
+        registration.registrationType = _registrationType;
+        registration.effectiveDate = _effectiveDate;
+        registration.expirationDate = _expirationDate;
+        emit RegistrationAdded(totalRegistrations);
+        return totalRegistrations;
+    }
+
+    function updateRegistration(
+        uint256 _id,
+        string memory _fundName,
+        string memory _fundType,
+        string memory _investmentObjective,
+        string memory _investmentStrategy,
+        string memory _investmentPolicies,
+        string memory _riskConsiderations,
+        string memory _feesAndExpenses,
+        string memory _financialStatements,
+        address _registeredBroker,
+        string memory _registrationType,
+        uint256 _effectiveDate,
+        uint256 _expirationDate
+    ) public {
+        require(authorizedBrokers[_registeredBroker], "Broker not authorized");
+        require(_id <= totalRegistrations, "Invalid registration ID");
+        Registration storage registration = registrations[_id];
+        registration.fundName = _fundName;
+        registration.fundType = _fundType;
+        registration.investmentObjective = _investmentObjective;
+        registration.investmentStrategy = _investmentStrategy;
+        registration.investmentPolicies = _investmentPolicies;
+        registration.riskConsiderations = _riskConsiderations;
+        registration.feesAndExpenses = _feesAndExpenses;
+        registration.financialStatements = _financialStatements;
+        registration.registeredBroker = _registeredBroker;
+        registration.registrationType = _registrationType;
+        registration.effectiveDate = _effectiveDate;
+        registration.expirationDate = _expirationDate;
+        emit RegistrationUpdated(_id);
+    }
+
+    function authorize
